@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nébula Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f2ff; --card:#ffffff; --texto:#1e1b3a; --suave:#6b6890; --borde:#e3e0f5;
+    --p1:#6d28d9; --p2:#db2777; --ok:#16a34a; --err:#dc2626; --warn:#d97706;
+    --sombra:0 8px 24px rgba(76,29,149,.10); --radio:16px;
+  }
+  body.oscuro{ --bg:#14122b; --card:#1e1b3a; --texto:#f1efff; --suave:#a8a4cf; --borde:#2f2b57; --sombra:0 8px 24px rgba(0,0,0,.35); }
+  body.fuente-grande{ font-size:17px; } body.fuente-pequena{ font-size:13px; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Poppins',Arial,sans-serif;background:var(--bg);color:var(--texto);font-size:15px;transition:background .3s}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;width:100%;padding:11px 13px;border:1.5px solid var(--borde);border-radius:10px;background:var(--card);color:var(--texto);font-size:.95em;margin-top:5px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p1)}
+  label{font-weight:500;font-size:.9em;display:block;margin-top:14px}
+  .btn{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:.95em}
+  .btn:hover{filter:brightness(1.08)} .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-sec{background:transparent;border:1.5px solid var(--p1);color:var(--p1);padding:10px 18px;border-radius:10px;font-weight:600}
+  .btn-peligro{background:var(--err);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:600}
+  .ancho{width:100%;margin-top:20px}
+  .alerta{padding:11px 14px;border-radius:10px;margin-top:14px;font-size:.9em;display:none}
+  .alerta.error{display:block;background:#fee2e2;color:#991b1b}
+  .alerta.exito{display:block;background:#dcfce7;color:#166534}
+  .ayuda{color:var(--suave);font-size:.82em;margin-top:4px}
+  .oculto{display:none!important}
+
+  /* ===== AUTENTICACIÓN ===== */
+  #vista-auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+  .auth-arte{background:linear-gradient(150deg,#4c1d95,#7c3aed 45%,#db2777);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+  .auth-arte h1{font-size:2.6em;margin:0 0 10px} .auth-arte p{opacity:.9;max-width:380px}
+  .auth-arte svg{position:absolute;right:-60px;bottom:-60px;opacity:.9}
+  .flotantes{font-size:2.2em;margin-top:28px;letter-spacing:12px}
+  .auth-panel{display:flex;align-items:center;justify-content:center;padding:32px 16px}
+  .auth-caja{width:100%;max-width:420px;background:var(--card);padding:32px;border-radius:var(--radio);box-shadow:var(--sombra)}
+  .pestanas{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:10px}
+  .pestanas button{flex:1;border:none;background:transparent;padding:10px;border-radius:9px;font-weight:600;color:var(--suave)}
+  .pestanas button.activa{background:var(--card);color:var(--p1);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .fila-check{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:.9em}
+  .fila-check input{width:auto;margin:0}
+  .enlace{color:var(--p1);background:none;border:none;font-weight:600;padding:0;font-size:.9em}
+  .medidor{height:6px;border-radius:4px;background:var(--borde);margin-top:6px;overflow:hidden}
+  .medidor div{height:100%;width:0;transition:.3s}
+  .ojo{position:relative} .ojo button{position:absolute;right:10px;top:16px;background:none;border:none;font-size:1.1em}
+
+  /* ===== APP ===== */
+  #vista-app{display:flex;min-height:100vh}
+  aside{width:240px;background:var(--card);border-right:1px solid var(--borde);padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+  .logo{font-weight:700;font-size:1.3em;padding:0 10px 18px;background:linear-gradient(135deg,var(--p1),var(--p2));-webkit-background-clip:text;color:transparent}
+  aside button.menu{display:flex;align-items:center;gap:12px;border:none;background:none;padding:11px 14px;border-radius:10px;text-align:left;color:var(--texto);font-size:.95em;font-weight:500}
+  aside button.menu:hover{background:var(--bg)}
+  aside button.menu.activa{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff}
+  .insignia{margin-left:auto;background:var(--p2);color:#fff;border-radius:20px;padding:0 8px;font-size:.75em}
+  aside .salir{margin-top:auto}
+  .contenido{flex:1;padding:24px 28px;min-width:0}
+  .barra-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+  .barra-top h2{margin:0}
+  .usuario-chip{display:flex;align-items:center;gap:10px;background:var(--card);padding:6px 14px 6px 6px;border-radius:40px;box-shadow:var(--sombra)}
+  .avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--p2));display:flex;align-items:center;justify-content:center;font-size:1.3em}
+  .tarjeta{background:var(--card);border-radius:var(--radio);padding:22px;box-shadow:var(--sombra)}
+  .pagina{display:none} .pagina.activa{display:block;animation:entra .3s}
+  @keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+
+  .heroe{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-radius:var(--radio);padding:28px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  .heroe h3{margin:0 0 6px;font-size:1.5em}
+  .heroe .emoji-grande{font-size:4em}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:20px 0}
+  .stat{background:var(--card);border-radius:var(--radio);padding:18px;box-shadow:var(--sombra)}
+  .stat .num{font-size:1.7em;font-weight:700} .stat .lbl{color:var(--suave);font-size:.85em}
+
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-top:16px}
+  .producto{background:var(--card);border-radius:var(--radio);overflow:hidden;box-shadow:var(--sombra);display:flex;flex-direction:column;transition:transform .2s}
+  .producto:hover{transform:translateY(-4px)}
+  .producto .img{height:130px;display:flex;align-items:center;justify-content:center;font-size:3.6em;position:relative}
+  .producto .fav{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.85);border:none;border-radius:50%;width:34px;height:34px;font-size:1.05em}
+  .producto .cuerpo{padding:14px;display:flex;flex-direction:column;gap:4px;flex:1}
+  .producto h4{margin:0;font-size:1em}
+  .producto .precio{font-weight:700;color:var(--p1);font-size:1.1em}
+  .producto .meta{color:var(--suave);font-size:.8em}
+  .producto .acciones{display:flex;gap:6px;margin-top:auto;padding-top:8px}
+  .producto .acciones button{flex:1;padding:8px;font-size:.82em}
+  .agotado{color:var(--err);font-weight:600;font-size:.8em}
+
+  .buscador{display:flex;gap:10px;flex-wrap:wrap}
+  .buscador .campo{flex:2;min-width:220px;position:relative}
+  .buscador .campo input{padding-left:40px;margin:0}
+  .buscador .campo span{position:absolute;left:13px;top:11px}
+  .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px}
+  .filtros label{margin-top:0}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .chip{border:1.5px solid var(--borde);background:var(--card);color:var(--texto);border-radius:30px;padding:6px 14px;font-size:.85em}
+  .chip.activa{background:var(--p1);color:#fff;border-color:var(--p1)}
+  .vacio{text-align:center;padding:40px;color:var(--suave)} .vacio div{font-size:3.5em}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:12px;text-align:left;border-bottom:1px solid var(--borde);font-size:.92em}
+  th{color:var(--suave);font-weight:500}
+  .estado{padding:3px 10px;border-radius:20px;font-size:.8em;font-weight:600}
+  .e-Pendiente{background:#fef3c7;color:#92400e} .e-Enviado{background:#dbeafe;color:#1e40af}
+  .e-Entregado{background:#dcfce7;color:#166534} .e-Cancelado{background:#fee2e2;color:#991b1b}
+  .cantidad{display:flex;align-items:center;gap:6px}
+  .cantidad button{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--borde);background:var(--card);color:var(--texto)}
+
+  .dos-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .perfil-cab{display:flex;align-items:center;gap:18px;margin-bottom:10px}
+  .perfil-cab .avatar{width:80px;height:80px;font-size:2.6em}
+  .avatares{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .avatares button{font-size:1.5em;border:2px solid var(--borde);background:var(--card);border-radius:12px;width:48px;height:48px}
+  .avatares button.activa{border-color:var(--p1);background:var(--bg)}
+  .interruptor{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--borde)}
+  .interruptor:last-child{border-bottom:none}
+  .switch{position:relative;width:48px;height:26px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .switch span{position:absolute;inset:0;background:var(--borde);border-radius:30px;transition:.3s;cursor:pointer}
+  .switch span:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
+  .switch input:checked+span{background:var(--p1)} .switch input:checked+span:before{transform:translateX(22px)}
+
+  .modal-fondo{position:fixed;inset:0;background:rgba(20,10,50,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal-fondo.abierto{display:flex}
+  .modal{background:var(--card);border-radius:var(--radio);padding:26px;max-width:460px;width:100%;position:relative}
+  .modal .cerrar{position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.4em;color:var(--suave)}
+  .modal .img{font-size:5em;text-align:center;border-radius:12px;padding:18px}
+  #toast{position:fixed;bottom:22px;right:22px;background:var(--texto);color:var(--card);padding:13px 20px;border-radius:12px;box-shadow:var(--sombra);transform:translateY(120px);transition:.35s;z-index:60;font-size:.92em}
+  #toast.visible{transform:none}
+
+  @media (max-width:820px){
+    #vista-auth{grid-template-columns:1fr} .auth-arte{padding:30px 20px} .auth-arte svg{display:none}
+    #vista-app{flex-direction:column}
+    aside{width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;padding:10px}
+    .logo{display:none} aside button.menu{white-space:nowrap} aside .salir{margin-top:0}
+    .contenido{padding:16px} .dos-col{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- =================== VISTA DE AUTENTICACIÓN =================== -->
+<div id="vista-auth">
+  <div class="auth-arte">
+    <h1>Nébula Store</h1>
+    <p>Tu tienda galáctica de tecnología, hogar, deportes y más. Crea tu cuenta o inicia sesión para empezar a explorar.</p>
+    <div class="flotantes">🚀 🎧 🪐 ⚽ 🛋️</div>
+    <svg width="380" height="380" viewBox="0 0 200 200"><circle cx="100" cy="100" r="70" fill="#fbbf24" opacity=".85"/><ellipse cx="100" cy="100" rx="98" ry="22" fill="none" stroke="#fff" stroke-width="5" opacity=".7" transform="rotate(-20 100 100)"/><circle cx="78" cy="80" r="10" fill="#f59e0b"/><circle cx="120" cy="118" r="14" fill="#f59e0b"/></svg>
+  </div>
+
+  <div class="auth-panel">
+    <div class="auth-caja">
+      <div class="pestanas">
+        <button id="tab-login" class="activa" onclick="pestana('login')">Iniciar sesión</button>
+        <button id="tab-registro" onclick="pestana('registro')">Crear cuenta</button>
+      </div>
+
+      <!-- LOGIN -->
+      <form id="form-login" onsubmit="return iniciarSesion(event)" novalidate>
+        <h2 style="margin:14px 0 0">¡Hola de nuevo! 👋</h2>
+        <p class="ayuda">Cuenta de prueba: demo@nebula.com / Demo1234</p>
+        <label for="login-correo">Correo electrónico</label>
+        <input type="email" id="login-correo" name="correo" placeholder="tu@correo.com" autocomplete="off">
+        <label for="login-clave">Contraseña</label>
+        <div class="ojo">
+          <input type="password" id="login-clave" name="clave" placeholder="••••••••">
+          <button type="button" id="ver-login-clave" onclick="verClave('login-clave')">👁️</button>
+        </div>
+        <div class="fila-check" style="justify-content:space-between">
+          <span style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="login-recordar"> <label for="login-recordar" style="margin:0;font-weight:400">Recordarme</label></span>
+          <button type="button" class="enlace" id="link-olvide" onclick="pestana('recuperar')">¿Olvidaste tu contraseña?</button>
+        </div>
+        <button type="submit" id="btn-login" class="btn ancho">Iniciar sesión</button>
+        <div id="alerta-login" class="alerta"></div>
+      </form>
+
+      <!-- REGISTRO -->
+      <form id="form-registro" class="oculto" onsubmit="return registrar(event)" novalidate>
+        <h2 style="margin:14px 0 0">Crea tu cuenta ✨</h2>
+        <label for="reg-nombre">Nombre completo</label>
+        <input type="text" id="reg-nombre" placeholder="Ej: Laura Martínez">
+        <label for="reg-correo">Correo electrónico</label>
+        <input type="email" id="reg-correo" placeholder="tu@correo.com" autocomplete="off">
+        <label for="reg-clave">Contraseña</label>
+        <div class="ojo">
+          <input type="password" id="reg-clave" placeholder="Mínimo 8 caracteres" oninput="medirClave()">
+          <button type="button" id="ver-reg-clave" onclick="verClave('reg-clave')">👁️</button>
+        </div>
+        <div class="medidor"><div id="medidor-barra"></div></div>
+        <div class="ayuda" id="medidor-texto">Usa 8+ caracteres, una mayúscula y un número.</div>
+        <label for="reg-confirmar">Confirmar contraseña</label>
+        <input type="password" id="reg-confirmar" placeholder="Repite la contraseña">
+        <label for="reg-pregunta">Pregunta de seguridad: ¿nombre de tu primera mascota?</label>
+        <input type="text" id="reg-pregunta" placeholder="Se usa para recuperar tu contraseña">
+        <div class="fila-check"><input type="checkbox" id="reg-terminos"><label for="reg-terminos" style="margin:0;font-weight:400">Acepto los términos y condiciones</label></div>
+        <button type="submit" id="btn-registro" class="btn ancho">Crear cuenta</button>
+        <div id="alerta-registro" class="alerta"></div>
+      </form>
+
+      <!-- RECUPERAR -->
+      <form id="form-recuperar" class="oculto" onsubmit="return recuperar(event)" novalidate>
+        <h2 style="margin:14px 0 0">Recuperar contraseña 🔑</h2>
+        <p class="ayuda">Responde tu pregunta de seguridad para crear una contraseña nueva.</p>
+        <label for="rec-correo">Correo electrónico</label>
+        <input type="email" id="rec-correo" placeholder="tu@correo.com">
+        <label for="rec-respuesta">Nombre de tu primera mascota</label>
+        <input type="text" id="rec-respuesta">
+        <label for="rec-nueva">Nueva contraseña</label>
+        <input type="password" id="rec-nueva">
+        <button type="submit" id="btn-recuperar" class="btn ancho">Restablecer contraseña</button>
+        <button type="button" id="btn-volver-login" class="btn-sec ancho" onclick="pestana('login')">Volver al inicio de sesión</button>
+        <div id="alerta-recuperar" class="alerta"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =================== VISTA PRINCIPAL =================== -->
+<div id="vista-app" class="oculto">
+  <aside>
+    <div class="logo">🪐 Nébula Store</div>
+    <button class="menu activa" id="menu-inicio" onclick="ir('inicio')">🏠 Inicio</button>
+    <button class="menu" id="menu-buscar" onclick="ir('buscar')">🔍 Buscar</button>
+    <button class="menu" id="menu-favoritos" onclick="ir('favoritos')">❤️ Favoritos <span class="insignia" id="insignia-fav">0</span></button>
+    <button class="menu" id="menu-carrito" onclick="ir('carrito')">🛒 Carrito <span class="insignia" id="insignia-carrito">0</span></button>
+    <button class="menu" id="menu-pedidos" onclick="ir('pedidos')">📦 Mis pedidos</button>
+    <button class="menu" id="menu-perfil" onclick="ir('perfil')">👤 Perfil</button>
+    <button class="menu" id="menu-config" onclick="ir('config')">⚙️ Configuración</button>
+    <button class="menu salir" id="btn-logout" onclick="cerrarSesion()">🚪 Cerrar sesión</button>
+  </aside>
+
+  <div class="contenido">
+    <div class="barra-top">
+      <h2 id="titulo-pagina">Inicio</h2>
+      <div class="usuario-chip"><div class="avatar" id="chip-avatar">🧑‍🚀</div><span id="chip-nombre">Usuario</span></div>
+    </div>
+
+    <!-- INICIO -->
+    <div class="pagina activa" id="pag-inicio">
+      <div class="heroe">
+        <div><h3 id="saludo">¡Bienvenido!</h3><p style="margin:0;opacity:.9">Esta semana tenemos el cupón <b>NEBULA10</b> con 10% de descuento.</p>
+          <button class="btn-sec" id="btn-ir-buscar" style="background:#fff;border:none;margin-top:14px" onclick="ir('buscar')">Explorar productos →</button></div>
+        <div class="emoji-grande">🛸</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="num" id="stat-pedidos">0</div><div class="lbl">Pedidos realizados</div></div>
+        <div class="stat"><div class="num" id="stat-favoritos">0</div><div class="lbl">Favoritos</div></div>
+        <div class="stat"><div class="num" id="stat-carrito">0</div><div class="lbl">Productos en carrito</div></div>
+        <div class="stat"><div class="num" id="stat-gastado">$0</div><div class="lbl">Total gastado</div></div>
+      </div>
+      <h3>⭐ Recomendados para ti</h3>
+      <div class="rejilla" id="rejilla-recomendados"></div>
+    </div>
+
+    <!-- BUSCAR -->
+    <div class="pagina" id="pag-buscar">
+      <div class="tarjeta">
+        <div class="buscador">
+          <div class="campo"><span>🔍</span><input type="text" id="buscar-texto" placeholder="Buscar productos por nombre o descripción..." onkeyup="if(event.key==='Enter')buscar()"></div>
+          <button class="btn" id="btn-buscar" onclick="buscar()">Buscar</button>
+          <button class="btn-sec" id="btn-limpiar-filtros" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+        <div class="chips" id="chips-categorias"></div>
+        <div class="filtros">
+          <div><label for="filtro-min">Precio mínimo</label><input type="number" id="filtro-min" placeholder="0" min="0"></div>
+          <div><label for="filtro-max">Precio máximo</label><input type="number" id="filtro-max" placeholder="Sin límite" min="0"></div>
+          <div><label for="filtro-orden">Ordenar por</label>
+            <select id="filtro-orden"><option value="relevancia">Relevancia</option><option value="precio-asc">Precio: menor a mayor</option><option value="precio-desc">Precio: mayor a menor</option><option value="nombre">Nombre A-Z</option><option value="rating">Mejor calificados</option></select></div>
+          <div><label for="filtro-rating">Calificación mínima</label>
+            <select id="filtro-rating"><option value="0">Cualquiera</option><option value="3">3+ ⭐</option><option value="4">4+ ⭐</option><option value="4.5">4.5+ ⭐</option></select></div>
+        </div>
+        <div class="fila-check"><input type="checkbox" id="filtro-stock"><label for="filtro-stock" style="margin:0;font-weight:400">Solo productos disponibles</label></div>
+        <div id="alerta-buscar" class="alerta"></div>
+      </div>
+      <p id="contador-resultados" class="ayuda" style="margin-top:16px"></p>
+      <div class="rejilla" id="rejilla-resultados"></div>
+      <div class="vacio oculto" id="sin-resultados"><div>🔭</div>No encontramos productos con esos filtros.</div>
+    </div>
+
+    <!-- FAVORITOS -->
+    <div class="pagina" id="pag-favoritos">
+      <div class="rejilla" id="rejilla-favoritos"></div>
+      <div class="vacio oculto" id="favoritos-vacio"><div>💔</div>Aún no tienes favoritos. Toca el corazón de un producto.</div>
+    </div>
+
+    <!-- CARRITO -->
+    <div class="pagina" id="pag-carrito">
+      <div class="dos-col">
+        <div class="tarjeta">
+          <h3 style="margin-top:0">Tu carrito</h3>
+          <table id="tabla-carrito"><thead><tr><th>Producto</th><th>Cantidad</th><th>Subtotal</th><th></th></tr></thead><tbody id="cuerpo-carrito"></tbody></table>
+          <div class="vacio oculto" id="carrito-vacio"><div>🛒</div>Tu carrito está vacío.</div>
+          <label for="cupon">Cupón de descuento</label>
+          <div style="display:flex;gap:8px"><input type="text" id="cupon" placeholder="Ej: NEBULA10"><button class="btn-sec" id="btn-cupon" style="margin-top:5px" onclick="aplicarCupon()">Aplicar</button></div>
+          <div id="alerta-cupon" class="alerta"></div>
+          <p>Subtotal: <b id="carrito-subtotal">$0</b><br>Descuento: <b id="carrito-descuento">$0</b><br>Envío: <b id="carrito-envio">$0</b><br><span style="font-size:1.2em">Total: <b id="carrito-total">$0</b></span></p>
+          <p class="ayuda">Envío gratis en compras desde $200.000.</p>
+        </div>
+        <div class="tarjeta">
+          <h3 style="margin-top:0">Datos de envío</h3>
+          <form id="form-checkout" onsubmit="return pagar(event)" novalidate>
+            <label for="envio-direccion">Dirección</label><input type="text" id="envio-direccion" placeholder="Calle 00 # 00-00">
+            <label for="envio-ciudad">Ciudad</label>
+            <select id="envio-ciudad"><option value="">-- Selecciona --</option><option>Bogotá</option><option>Medellín</option><option>Cali</option><option>Barranquilla</option><option>Bucaramanga</option></select>
+            <label>Método de pago</label>
+            <div class="fila-check"><input type="radio" name="pago" id="pago-contraentrega" value="Contraentrega" checked><label for="pago-contraentrega" style="margin:0;font-weight:400">💵 Contraentrega</label></div>
+            <div class="fila-check"><input type="radio" name="pago" id="pago-pse" value="PSE"><label for="pago-pse" style="margin:0;font-weight:400">🏦 PSE (simulado)</label></div>
+            <div class="fila-check"><input type="radio" name="pago" id="pago-nequi" value="Nequi"><label for="pago-nequi" style="margin:0;font-weight:400">📱 Billetera digital (simulado)</label></div>
+            <button type="submit" class="btn ancho" id="btn-pagar">Confirmar pedido</button>
+            <div id="alerta-checkout" class="alerta"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- PEDIDOS -->
+    <div class="pagina" id="pag-pedidos">
+      <div class="tarjeta">
+        <div class="filtros" style="margin-top:0">
+          <div><label for="pedidos-filtro">Filtrar por estado</label>
+            <select id="pedidos-filtro" onchange="renderPedidos()"><option value="todos">Todos</option><option>Pendiente</option><option>Enviado</option><option>Entregado</option><option>Cancelado</option></select></div>
+        </div>
+        <table id="tabla-pedidos" style="margin-top:14px"><thead><tr><th>N.º</th><th>Fecha</th><th>Productos</th><th>Total</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="cuerpo-pedidos"></tbody></table>
+        <div class="vacio oculto" id="pedidos-vacio"><div>📭</div>No hay pedidos para mostrar.</div>
+      </div>
+    </div>
+
+    <!-- PERFIL -->
+    <div class="pagina" id="pag-perfil">
+      <div class="dos-col">
+        <div class="tarjeta">
+          <div class="perfil-cab"><div class="avatar" id="perfil-avatar">🧑‍🚀</div><div><h3 style="margin:0" id="perfil-nombre-titulo">Nombre</h3><span class="ayuda" id="perfil-correo-titulo">correo</span><br><span class="ayuda" id="perfil-desde"></span></div></div>
+          <label>Elige tu avatar</label>
+          <div class="avatares" id="lista-avatares"></div>
+        </div>
+        <div class="tarjeta">
+          <h3 style="margin-top:0">Información personal</h3>
+          <form id="form-perfil" onsubmit="return guardarPerfil(event)" novalidate>
+            <label for="perfil-nombre">Nombre completo</label><input type="text" id="perfil-nombre">
+            <label for="perfil-correo">Correo electrónico</label><input type="email" id="perfil-correo" readonly style="opacity:.7">
+            <div class="ayuda">El correo no se puede cambiar.</div>
+            <label for="perfil-telefono">Teléfono</label><input type="text" id="perfil-telefono" placeholder="10 dígitos">
+            <label for="perfil-nacimiento">Fecha de nacimiento</label><input type="date" id="perfil-nacimiento">
+            <label for="perfil-genero">Género</label>
+            <select id="perfil-genero"><option value="">Prefiero no decir</option><option>Femenino</option><option>Masculino</option><option>Otro</option></select>
+            <label for="perfil-bio">Biografía</label><textarea id="perfil-bio" rows="3" maxlength="150" oninput="contarBio()"></textarea>
+            <div class="ayuda"><span id="bio-contador">0</span>/150 caracteres</div>
+            <button type="submit" class="btn ancho" id="btn-guardar-perfil">Guardar cambios</button>
+            <div id="alerta-perfil" class="alerta"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div class="pagina" id="pag-config">
+      <div class="dos-col">
+        <div class="tarjeta">
+          <h3 style="margin-top:0">🎨 Apariencia y preferencias</h3>
+          <div class="interruptor"><div><b>Modo oscuro</b><div class="ayuda">Cambia los colores de la interfaz</div></div><label class="switch"><input type="checkbox" id="cfg-oscuro" onchange="aplicarTema()"><span></span></label></div>
+          <div class="interruptor"><div><b>Notificaciones por correo</b><div class="ayuda">Ofertas y novedades</div></div><label class="switch"><input type="checkbox" id="cfg-notif-correo"><span></span></label></div>
+          <div class="interruptor"><div><b>Notificaciones de pedidos</b><div class="ayuda">Avisos cuando cambie el estado</div></div><label class="switch"><input type="checkbox" id="cfg-notif-pedidos"><span></span></label></div>
+          <label for="cfg-fuente">Tamaño de letra</label>
+          <select id="cfg-fuente" onchange="aplicarFuente()"><option value="pequena">Pequeña</option><option value="normal" selected>Normal</option><option value="grande">Grande</option></select>
+          <label for="cfg-idioma">Idioma del saludo</label>
+          <select id="cfg-idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option></select>
+          <button class="btn ancho" id="btn-guardar-config" onclick="guardarConfig()">Guardar preferencias</button>
+          <div id="alerta-config" class="alerta"></div>
+        </div>
+        <div class="tarjeta">
+          <h3 style="margin-top:0">🔒 Cambiar contraseña</h3>
+          <form id="form-clave" onsubmit="return cambiarClave(event)" novalidate>
+            <label for="clave-actual">Contraseña actual</label><input type="password" id="clave-actual">
+            <label for="clave-nueva">Nueva contraseña</label><input type="password" id="clave-nueva">
+            <label for="clave-confirmar">Confirmar nueva contraseña</label><input type="password" id="clave-confirmar">
+            <button type="submit" class="btn ancho" id="btn-cambiar-clave">Actualizar contraseña</button>
+            <div id="alerta-clave" class="alerta"></div>
+          </form>
+          <h3 style="margin-top:30px;color:var(--err)">⚠️ Zona de peligro</h3>
+          <p class="ayuda">Eliminar tu cuenta borra todos tus datos y pedidos.</p>
+          <button class="btn-peligro" id="btn-eliminar-cuenta" onclick="abrirModal('modal-eliminar')">Eliminar mi cuenta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal-fondo" id="modal-producto">
+  <div class="modal">
+    <button class="cerrar" id="cerrar-modal-producto" onclick="cerrarModal('modal-producto')">✕</button>
+    <div class="img" id="modal-img"></div>
+    <h3 id="modal-nombre" style="margin-bottom:4px"></h3>
+    <div class="ayuda" id="modal-meta"></div>
+    <p id="modal-descripcion"></p>
+    <div class="precio" id="modal-precio" style="font-size:1.4em;font-weight:700;color:var(--p1)"></div>
+    <label for="modal-cantidad">Cantidad</label>
+    <input type="number" id="modal-cantidad" value="1" min="1">
+    <div id="alerta-modal" class="alerta"></div>
+    <button class="btn ancho" id="modal-agregar">Agregar al carrito</button>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR CUENTA -->
+<div class="modal-fondo" id="modal-eliminar">
+  <div class="modal">
+    <button class="cerrar" id="cerrar-modal-eliminar" onclick="cerrarModal('modal-eliminar')">✕</button>
+    <h3>¿Eliminar tu cuenta? 😢</h3>
+    <p>Esta acción no se puede deshacer. Escribe <b>ELIMINAR</b> para confirmar.</p>
+    <input type="text" id="confirmar-eliminar" placeholder="ELIMINAR">
+    <div id="alerta-eliminar" class="alerta"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn-sec" style="flex:1" id="btn-cancelar-eliminar" onclick="cerrarModal('modal-eliminar')">Cancelar</button>
+      <button class="btn-peligro" style="flex:1" id="btn-confirmar-eliminar" onclick="eliminarCuenta()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= DATOS ================= */
+const PRODUCTOS = [
+  {id:1, nombre:"Audífonos Orbit", cat:"Tecnología", precio:189000, rating:4.7, stock:12, emoji:"🎧", color:"#ede9fe", desc:"Audífonos inalámbricos con cancelación de ruido y 30 horas de batería."},
+  {id:2, nombre:"Smartwatch Cometa", cat:"Tecnología", precio:349000, rating:4.4, stock:5, emoji:"⌚", color:"#e0f2fe", desc:"Reloj inteligente con GPS, monitor de sueño y resistencia al agua."},
+  {id:3, nombre:"Teclado Galaxia RGB", cat:"Tecnología", precio:159000, rating:4.6, stock:0, emoji:"⌨️", color:"#fce7f3", desc:"Teclado mecánico con luces RGB personalizables."},
+  {id:4, nombre:"Cámara Estelar", cat:"Tecnología", precio:899000, rating:4.8, stock:3, emoji:"📷", color:"#fef3c7", desc:"Cámara compacta 4K ideal para viajes y video."},
+  {id:5, nombre:"Lámpara Luna", cat:"Hogar", precio:79000, rating:4.2, stock:20, emoji:"🌙", color:"#f3e8ff", desc:"Lámpara decorativa con forma de luna y 16 colores."},
+  {id:6, nombre:"Sofá Nube", cat:"Hogar", precio:1250000, rating:4.9, stock:2, emoji:"🛋️", color:"#dcfce7", desc:"Sofá de tres puestos súper cómodo y tela antimanchas."},
+  {id:7, nombre:"Cafetera Supernova", cat:"Hogar", precio:229000, rating:4.1, stock:8, emoji:"☕", color:"#ffedd5", desc:"Cafetera programable para 12 tazas."},
+  {id:8, nombre:"Planta Marciana", cat:"Hogar", precio:45000, rating:3.8, stock:30, emoji:"🪴", color:"#d1fae5", desc:"Planta de interior fácil de cuidar, incluye matera."},
+  {id:9, nombre:"Balón Meteoro", cat:"Deportes", precio:65000, rating:4.3, stock:15, emoji:"⚽", color:"#e0e7ff", desc:"Balón de fútbol profesional talla 5."},
+  {id:10,nombre:"Bicicleta Órbita", cat:"Deportes", precio:1490000, rating:4.7, stock:0, emoji:"🚲", color:"#cffafe", desc:"Bicicleta de montaña con 21 cambios y frenos de disco."},
+  {id:11,nombre:"Mancuernas Plutón", cat:"Deportes", precio:120000, rating:4.0, stock:10, emoji:"🏋️", color:"#fee2e2", desc:"Par de mancuernas ajustables de 2 a 10 kg."},
+  {id:12,nombre:"Tapete Yoga Aurora", cat:"Deportes", precio:58000, rating:4.5, stock:25, emoji:"🧘", color:"#fae8ff", desc:"Tapete antideslizante de 6 mm."},
+  {id:13,nombre:"Libro Cosmos", cat:"Libros", precio:69000, rating:4.9, stock:18, emoji:"📘", color:"#dbeafe", desc:"Un viaje fascinante por el universo y la ciencia."},
+  {id:14,nombre:"Cómic Andrómeda", cat:"Libros", precio:39000, rating:3.5, stock:40, emoji:"📚", color:"#fef9c3", desc:"Aventura espacial ilustrada para todas las edades."},
+  {id:15,nombre:"Rompecabezas Vía Láctea", cat:"Juguetes", precio:55000, rating:4.4, stock:9, emoji:"🧩", color:"#ccfbf1", desc:"Rompecabezas de 1000 piezas."},
+  {id:16,nombre:"Cohete Armable", cat:"Juguetes", precio:99000, rating:4.6, stock:6, emoji:"🚀", color:"#ffe4e6", desc:"Kit de construcción de cohete con 300 piezas."}
+];
+const CATEGORIAS = ["Todas","Tecnología","Hogar","Deportes","Libros","Juguetes"];
+const AVATARES = ["🧑‍🚀","👩‍🚀","👽","🤖","🦊","🐱","🐼","🦄","🌟","🪐"];
+const CUPONES = { "NEBULA10":0.10, "GALAXIA20":0.20 };
+const ENVIO = 12000, ENVIO_GRATIS = 200000;
+const fmt = n => "$" + Math.round(n).toLocaleString("es-CO");
+
+/* ================= ALMACENAMIENTO ================= */
+function leer(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+function guardar(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+let usuarios = leer("nebula_usuarios", null);
+if(!usuarios){
+  usuarios = { "demo@nebula.com": { nombre:"Usuario Demo", correo:"demo@nebula.com", clave:"Demo1234", seguridad:"firulais",
+    avatar:"🧑‍🚀", telefono:"", nacimiento:"", genero:"", bio:"", desde:"2026-01-15", intentos:0, bloqueado:false,
+    config:{oscuro:false, notifCorreo:true, notifPedidos:true, fuente:"normal", idioma:"es"},
+    favoritos:[1,13], carrito:[], pedidos:[
+      {num:5001, fecha:"2026-09-20", items:[{id:9,cant:2}], total:142000, estado:"Entregado"},
+      {num:5002, fecha:"2026-10-10", items:[{id:5,cant:1},{id:13,cant:1}], total:160000, estado:"Enviado"}
+    ] } };
+  guardar("nebula_usuarios", usuarios);
+}
+let actual = null, descuento = 0, cuponActivo = "", categoriaSel = "Todas";
+const U = () => usuarios[actual];
+const persistir = () => guardar("nebula_usuarios", usuarios);
+
+/* ================= UTILIDADES ================= */
+function alerta(id, txt, tipo){ const e = document.getElementById(id); e.textContent = txt; e.className = "alerta " + tipo; }
+function limpiarAlerta(id){ document.getElementById(id).className = "alerta"; }
+function toast(txt){ const t = document.getElementById("toast"); t.textContent = txt; t.classList.add("visible"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("visible"), 2600); }
+const correoValido = c => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c);
+const claveValida = c => c.length >= 8 && /[A-Z]/.test(c) && /\d/.test(c);
+function verClave(id){ const i = document.getElementById(id); i.type = i.type === "password" ? "text" : "password"; }
+function abrirModal(id){ document.getElementById(id).classList.add("abierto"); }
+function cerrarModal(id){ document.getElementById(id).classList.remove("abierto"); }
+
+/* ================= AUTENTICACIÓN ================= */
+function pestana(cual){
+  ["login","registro","recuperar"].forEach(f => document.getElementById("form-" + f).classList.toggle("oculto", f !== cual));
+  document.getElementById("tab-login").classList.toggle("activa", cual === "login");
+  document.getElementById("tab-registro").classList.toggle("activa", cual === "registro");
+  ["alerta-login","alerta-registro","alerta-recuperar"].forEach(limpiarAlerta);
+}
+function medirClave(){
+  const c = document.getElementById("reg-clave").value;
+  let p = 0; if(c.length >= 8) p++; if(/[A-Z]/.test(c)) p++; if(/\d/.test(c)) p++; if(/[^A-Za-z0-9]/.test(c)) p++;
+  const niveles = [["0%","var(--borde)","Usa 8+ caracteres, una mayúscula y un número."],["25%","var(--err)","Muy débil"],["50%","var(--warn)","Débil"],["75%","#3b82f6","Buena"],["100%","var(--ok)","Fuerte 💪"]];
+  const b = document.getElementById("medidor-barra"); b.style.width = niveles[p][0]; b.style.background = niveles[p][1];
+  document.getElementById("medidor-texto").textContent = niveles[p][2];
+}
+function registrar(e){
+  e.preventDefault();
+  const nombre = document.getElementById("reg-nombre").value.trim();
+  const correo = document.getElementById("reg-correo").value.trim().toLowerCase();
+  const clave = document.getElementById("reg-clave").value;
+  const conf = document.getElementById("reg-confirmar").value;
+  const seg = document.getElementById("reg-pregunta").value.trim().toLowerCase();
+  const term = document.getElementById("reg-terminos").checked;
+  if(!nombre || !correo || !clave || !conf || !seg) return alerta("alerta-registro","Todos los campos son obligatorios.","error"), false;
+  if(nombre.length < 3 || !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/.test(nombre)) return alerta("alerta-registro","El nombre debe tener al menos 3 letras y no contener números.","error"), false;
+  if(!correoValido(correo)) return alerta("alerta-registro","El formato del correo no es válido.","error"), false;
+  if(usuarios[correo]) return alerta("alerta-registro","Ya existe una cuenta con ese correo.","error"), false;
+  if(!claveValida(clave)) return alerta("alerta-registro","La contraseña debe tener mínimo 8 caracteres, una mayúscula y un número.","error"), false;
+  if(clave !== conf) return alerta("alerta-registro","Las contraseñas no coinciden.","error"), false;
+  if(!term) return alerta("alerta-registro","Debes aceptar los términos y condiciones.","error"), false;
+  usuarios[correo] = { nombre, correo, clave, seguridad:seg, avatar:"🧑‍🚀", telefono:"", nacimiento:"", genero:"", bio:"",
+    desde:new Date().toISOString().slice(0,10), intentos:0, bloqueado:false,
+    config:{oscuro:false, notifCorreo:true, notifPedidos:true, fuente:"normal", idioma:"es"}, favoritos:[], carrito:[], pedidos:[] };
+  persistir();
+  document.getElementById("form-registro").reset(); medirClave();
+  pestana("login");
+  document.getElementById("login-correo").value = correo;
+  alerta("alerta-login","¡Cuenta creada con éxito! Ahora inicia sesión.","exito");
+  return false;
+}
+function iniciarSesion(e){
+  e.preventDefault();
+  const correo = document.getElementById("login-correo").value.trim().toLowerCase();
+  const clave = document.getElementById("login-clave").value;
+  if(!correo || !clave) return alerta("alerta-login","Ingresa tu correo y contraseña.","error"), false;
+  if(!correoValido(correo)) return alerta("alerta-login","El formato del correo no es válido.","error"), false;
+  const u = usuarios[correo];
+  if(!u) return alerta("alerta-login","No existe una cuenta con ese correo.","error"), false;
+  if(u.bloqueado) return alerta("alerta-login","Cuenta bloqueada por 3 intentos fallidos. Recupera tu contraseña.","error"), false;
+  if(u.clave !== clave){
+    u.intentos++; if(u.intentos >= 3) u.bloqueado = true; persistir();
+    return alerta("alerta-login", u.bloqueado ? "Cuenta bloqueada por 3 intentos fallidos. Recupera tu contraseña." : `Contraseña incorrecta. Te quedan ${3 - u.intentos} intento(s).`, "error"), false;
+  }
+  u.intentos = 0; persistir();
+  if(document.getElementById("login-recordar").checked) guardar("nebula_sesion", correo); else guardar("nebula_sesion", null);
+  entrar(correo);
+  return false;
+}
+function recuperar(e){
+  e.preventDefault();
+  const correo = document.getElementById("rec-correo").value.trim().toLowerCase();
+  const resp = document.getElementById("rec-respuesta").value.trim().toLowerCase();
+  const nueva = document.getElementById("rec-nueva").value;
+  if(!correo || !resp || !nueva) return alerta("alerta-recuperar","Completa todos los campos.","error"), false;
+  const u = usuarios[correo];
+  if(!u) return alerta("alerta-recuperar","No existe una cuenta con ese correo.","error"), false;
+  if(u.seguridad !== resp) return alerta("alerta-recuperar","La respuesta de seguridad es incorrecta.","error"), false;
+  if(!claveValida(nueva)) return alerta("alerta-recuperar","La nueva contraseña debe tener 8+ caracteres, una mayúscula y un número.","error"), false;
+  u.clave = nueva; u.intentos = 0; u.bloqueado = false; persistir();
+  document.getElementById("form-recuperar").reset();
+  pestana("login"); document.getElementById("login-correo").value = correo;
+  alerta("alerta-login","Contraseña restablecida. Ya puedes iniciar sesión.","exito");
+  return false;
+}
+function entrar(correo){
+  actual = correo; descuento = 0; cuponActivo = "";
+  document.getElementById("vista-auth").classList.add("oculto");
+  document.getElementById("vista-app").classList.remove("oculto");
+  document.getElementById("form-login").reset();
+  aplicarConfigGuardada(); refrescarUsuario(); ir("inicio");
+  toast("¡Sesión iniciada! Bienvenido, " + U().nombre.split(" ")[0]);
+}
+function cerrarSesion(){
+  actual = null; guardar("nebula_sesion", null);
+  document.body.className = "";
+  document.getElementById("vista-app").classList.add("oculto");
+  document.getElementById("vista-auth").classList.remove("oculto");
+  pestana("login"); alerta("alerta-login","Cerraste sesión correctamente.","exito");
+}
+
+/* ================= NAVEGACIÓN ================= */
+const TITULOS = {inicio:"Inicio", buscar:"Buscar productos", favoritos:"Mis favoritos", carrito:"Carrito de compras", pedidos:"Mis pedidos", perfil:"Mi perfil", config:"Configuración"};
+function ir(p){
+  document.querySelectorAll(".pagina").forEach(x => x.classList.remove("activa"));
+  document.querySelectorAll("aside .menu").forEach(x => x.classList.remove("activa"));
+  document.getElementById("pag-" + p).classList.add("activa");
+  document.getElementById("menu-" + p).classList.add("activa");
+  document.getElementById("titulo-pagina").textContent = TITULOS[p];
+  ({inicio:renderInicio, buscar:buscar, favoritos:renderFavoritos, carrito:renderCarrito, pedidos:renderPedidos, perfil:renderPerfil, config:renderConfig})[p]();
+}
+function refrescarUsuario(){
+  const u = U();
+  document.getElementById("chip-avatar").textContent = u.avatar;
+  document.getElementById("chip-nombre").textContent = u.nombre;
+  document.getElementById("insignia-fav").textContent = u.favoritos.length;
+  document.getElementById("insignia-carrito").textContent = u.carrito.reduce((a,i) => a + i.cant, 0);
+}
+
+/* ================= PRODUCTOS ================= */
+function tarjeta(p, prefijo){
+  const fav = U().favoritos.includes(p.id);
+  return `<div class="producto" id="${prefijo}-producto-${p.id}">
+    <div class="img" style="background:${p.color}">${p.emoji}
+      <button class="fav" id="${prefijo}-fav-${p.id}" title="Favorito" onclick="alternarFav(${p.id})">${fav ? "❤️" : "🤍"}</button></div>
+    <div class="cuerpo">
+      <h4 id="${prefijo}-nombre-${p.id}">${p.nombre}</h4>
+      <div class="meta">${p.cat} · ⭐ ${p.rating}</div>
+      <div class="precio" id="${prefijo}-precio-${p.id}">${fmt(p.precio)}</div>
+      ${p.stock === 0 ? '<span class="agotado">Agotado</span>' : `<span class="meta">${p.stock} disponibles</span>`}
+      <div class="acciones">
+        <button class="btn-sec" id="${prefijo}-ver-${p.id}" onclick="verProducto(${p.id})">Ver</button>
+        <button class="btn" id="${prefijo}-agregar-${p.id}" onclick="agregarCarrito(${p.id},1)" ${p.stock === 0 ? "disabled" : ""}>Agregar</button>
+      </div>
+    </div></div>`;
+}
+function alternarFav(id){
+  const f = U().favoritos, i = f.indexOf(id);
+  if(i >= 0){ f.splice(i,1); toast("Eliminado de favoritos"); } else { f.push(id); toast("Agregado a favoritos ❤️"); }
+  persistir(); refrescarUsuario(); refrescarVista();
+}
+function refrescarVista(){ const a = document.querySelector(".pagina.activa").id.replace("pag-",""); ({inicio:renderInicio, buscar:buscar, favoritos:renderFavoritos})[a]?.(); }
+function agregarCarrito(id, cant){
+  const p = PRODUCTOS.find(x => x.id === id);
+  const item = U().carrito.find(i => i.id === id);
+  const enCarrito = item ? item.cant : 0;
+  if(p.stock === 0){ toast("Producto agotado"); return false; }
+  if(enCarrito + cant > p.stock){ toast(`Solo hay ${p.stock} unidades disponibles`); return false; }
+  if(item) item.cant += cant; else U().carrito.push({id, cant});
+  persistir(); refrescarUsuario(); toast(`🛒 ${p.nombre} agregado al carrito`);
+  if(document.getElementById("pag-inicio").classList.contains("activa")) renderInicio();
+  return true;
+}
+function verProducto(id){
+  const p = PRODUCTOS.find(x => x.id === id);
+  document.getElementById("modal-img").textContent = p.emoji;
+  document.getElementById("modal-img").style.background = p.color;
+  document.getElementById("modal-nombre").textContent = p.nombre;
+  document.getElementById("modal-meta").textContent = `${p.cat} · ⭐ ${p.rating} · ${p.stock === 0 ? "Agotado" : p.stock + " disponibles"}`;
+  document.getElementById("modal-descripcion").textContent = p.desc;
+  document.getElementById("modal-precio").textContent = fmt(p.precio);
+  document.getElementById("modal-cantidad").value = 1;
+  document.getElementById("modal-cantidad").max = p.stock;
+  limpiarAlerta("alerta-modal");
+  const b = document.getElementById("modal-agregar"); b.disabled = p.stock === 0;
+  b.onclick = () => {
+    const c = parseInt(document.getElementById("modal-cantidad").value);
+    if(isNaN(c) || c < 1) return alerta("alerta-modal","La cantidad debe ser mayor a 0.","error");
+    if(agregarCarrito(id, c)) cerrarModal("modal-producto");
+    else alerta("alerta-modal",`No puedes agregar más de ${p.stock} unidades.`,"error");
+  };
+  abrirModal("modal-producto");
+}
+
+/* ================= INICIO ================= */
+function renderInicio(){
+  const u = U();
+  const saludos = {es:"¡Hola", en:"Hello", pt:"Olá"};
+  document.getElementById("saludo").textContent = `${saludos[u.config.idioma]}, ${u.nombre.split(" ")[0]}! ${u.avatar}`;
+  document.getElementById("stat-pedidos").textContent = u.pedidos.length;
+  document.getElementById("stat-favoritos").textContent = u.favoritos.length;
+  document.getElementById("stat-carrito").textContent = u.carrito.reduce((a,i) => a + i.cant, 0);
+  document.getElementById("stat-gastado").textContent = fmt(u.pedidos.filter(p => p.estado !== "Cancelado").reduce((a,p) => a + p.total, 0));
+  document.getElementById("rejilla-recomendados").innerHTML = [...PRODUCTOS].sort((a,b) => b.rating - a.rating).slice(0,4).map(p => tarjeta(p,"rec")).join("");
+}
+
+/* ================= BUSCAR ================= */
+function pintarChips(){
+  document.getElementById("chips-categorias").innerHTML = CATEGORIAS.map(c =>
+    `<button class="chip ${c === categoriaSel ? "activa" : ""}" id="chip-${c.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}" onclick="categoriaSel='${c}';buscar()">${c}</button>`).join("");
+}
+function buscar(){
+  pintarChips(); limpiarAlerta("alerta-buscar");
+  const q = document.getElementById("buscar-texto").value.trim().toLowerCase();
+  const min = document.getElementById("filtro-min").value, max = document.getElementById("filtro-max").value;
+  const orden = document.getElementById("filtro-orden").value;
+  const rmin = parseFloat(document.getElementById("filtro-rating").value);
+  const stock = document.getElementById("filtro-stock").checked;
+  if((min && min < 0) || (max && max < 0)) { alerta("alerta-buscar","Los precios no pueden ser negativos.","error"); return; }
+  if(min && max && Number(min) > Number(max)) { alerta("alerta-buscar","El precio mínimo no puede ser mayor que el máximo.","error"); return; }
+  let r = PRODUCTOS.filter(p =>
+    (categoriaSel === "Todas" || p.cat === categoriaSel) &&
+    (!q || p.nombre.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)) &&
+    (!min || p.precio >= Number(min)) && (!max || p.precio <= Number(max)) &&
+    p.rating >= rmin && (!stock || p.stock > 0));
+  if(orden === "precio-asc") r.sort((a,b) => a.precio - b.precio);
+  if(orden === "precio-desc") r.sort((a,b) => b.precio - a.precio);
+  if(orden === "nombre") r.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  if(orden === "rating") r.sort((a,b) => b.rating - a.rating);
+  document.getElementById("rejilla-resultados").innerHTML = r.map(p => tarjeta(p,"res")).join("");
+  document.getElementById("contador-resultados").textContent = `${r.length} producto(s) encontrado(s)`;
+  document.getElementById("sin-resultados").classList.toggle("oculto", r.length > 0);
+}
+function limpiarFiltros(){
+  ["buscar-texto","filtro-min","filtro-max"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("filtro-orden").value = "relevancia";
+  document.getElementById("filtro-rating").value = "0";
+  document.getElementById("filtro-stock").checked = false;
+  categoriaSel = "Todas"; buscar();
+}
+
+/* ================= FAVORITOS ================= */
+function renderFavoritos(){
+  const l = PRODUCTOS.filter(p => U().favoritos.includes(p.id));
+  document.getElementById("rejilla-favoritos").innerHTML = l.map(p => tarjeta(p,"fav")).join("");
+  document.getElementById("favoritos-vacio").classList.toggle("oculto", l.length > 0);
+}
+
+/* ================= CARRITO ================= */
+function totales(){
+  const sub = U().carrito.reduce((a,i) => a + PRODUCTOS.find(p => p.id === i.id).precio * i.cant, 0);
+  const desc = sub * descuento, base = sub - desc;
+  const envio = sub === 0 || base >= ENVIO_GRATIS ? 0 : ENVIO;
+  return {sub, desc, envio, total: base + envio};
+}
+function renderCarrito(){
+  const c = U().carrito;
+  document.getElementById("cuerpo-carrito").innerHTML = c.map(i => {
+    const p = PRODUCTOS.find(x => x.id === i.id);
+    return `<tr id="fila-carrito-${p.id}"><td>${p.emoji} ${p.nombre}</td>
+      <td><div class="cantidad"><button id="menos-${p.id}" onclick="cambiarCant(${p.id},-1)">−</button><span id="cant-${p.id}">${i.cant}</span><button id="mas-${p.id}" onclick="cambiarCant(${p.id},1)">+</button></div></td>
+      <td>${fmt(p.precio * i.cant)}</td><td><button class="enlace" style="color:var(--err)" id="quitar-${p.id}" onclick="quitar(${p.id})">Quitar</button></td></tr>`;
+  }).join("");
+  document.getElementById("tabla-carrito").classList.toggle("oculto", c.length === 0);
+  document.getElementById("carrito-vacio").classList.toggle("oculto", c.length > 0);
+  const t = totales();
+  document.getElementById("carrito-subtotal").textContent = fmt(t.sub);
+  document.getElementById("carrito-descuento").textContent = "-" + fmt(t.desc) + (cuponActivo ? ` (${cuponActivo})` : "");
+  document.getElementById("carrito-envio").textContent = t.envio ? fmt(t.envio) : "Gratis";
+  document.getElementById("carrito-total").textContent = fmt(t.total);
+  document.getElementById("btn-pagar").disabled = c.length === 0;
+}
+function cambiarCant(id, d){
+  const i = U().carrito.find(x => x.id === id), p = PRODUCTOS.find(x => x.id === id);
+  if(i.cant + d > p.stock){ toast(`Solo hay ${p.stock} unidades disponibles`); return; }
+  i.cant += d; if(i.cant <= 0) U().carrito = U().carrito.filter(x => x.id !== id);
+  persistir(); refrescarUsuario(); renderCarrito();
+}
+function quitar(id){ U().carrito = U().carrito.filter(x => x.id !== id); if(!U().carrito.length){descuento=0;cuponActivo="";} persistir(); refrescarUsuario(); renderCarrito(); toast("Producto eliminado del carrito"); }
+function aplicarCupon(){
+  const c = document.getElementById("cupon").value.trim().toUpperCase();
+  if(!U().carrito.length) return alerta("alerta-cupon","Agrega productos antes de aplicar un cupón.","error");
+  if(!c) return alerta("alerta-cupon","Escribe un código de cupón.","error");
+  if(!(c in CUPONES)) return alerta("alerta-cupon","El cupón no es válido o expiró.","error");
+  if(cuponActivo === c) return alerta("alerta-cupon","Este cupón ya está aplicado.","error");
+  descuento = CUPONES[c]; cuponActivo = c;
+  alerta("alerta-cupon",`Cupón ${c} aplicado: ${CUPONES[c]*100}% de descuento.`,"exito"); renderCarrito();
+}
+function pagar(e){
+  e.preventDefault();
+  const dir = document.getElementById("envio-direccion").value.trim();
+  const ciudad = document.getElementById("envio-ciudad").value;
+  if(!U().carrito.length) return alerta("alerta-checkout","Tu carrito está vacío.","error"), false;
+  if(dir.length < 8) return alerta("alerta-checkout","Escribe una dirección válida (mínimo 8 caracteres).","error"), false;
+  if(!ciudad) return alerta("alerta-checkout","Selecciona una ciudad.","error"), false;
+  const pedidos = U().pedidos, num = pedidos.length ? Math.max(...pedidos.map(p => p.num)) + 1 : 5001;
+  pedidos.push({num, fecha:new Date().toISOString().slice(0,10), items:U().carrito.map(i => ({...i})), total:totales().total, estado:"Pendiente"});
+  U().carrito.forEach(i => { PRODUCTOS.find(p => p.id === i.id).stock -= i.cant; });
+  U().carrito = []; descuento = 0; cuponActivo = "";
+  persistir(); refrescarUsuario();
+  document.getElementById("form-checkout").reset(); document.getElementById("cupon").value = ""; limpiarAlerta("alerta-cupon");
+  renderCarrito(); alerta("alerta-checkout",`🎉 ¡Pedido N.º ${num} confirmado! Pago: ${document.querySelector('input[name=pago]:checked')?.value || "Contraentrega"}.`,"exito");
+  return false;
+}
+
+/* ================= PEDIDOS ================= */
+function renderPedidos(){
+  const f = document.getElementById("pedidos-filtro").value;
+  const l = U().pedidos.filter(p => f === "todos" || p.estado === f).sort((a,b) => b.num - a.num);
+  document.getElementById("cuerpo-pedidos").innerHTML = l.map(p => `<tr id="pedido-${p.num}">
+    <td>#${p.num}</td><td>${p.fecha}</td><td>${p.items.map(i => PRODUCTOS.find(x => x.id === i.id).emoji + "×" + i.cant).join(" ")}</td>
+    <td>${fmt(p.total)}</td><td><span class="estado e-${p.estado}" id="estado-${p.num}">${p.estado}</span></td>
+    <td>${p.estado === "Pendiente" ? `<button class="enlace" style="color:var(--err)" id="cancelar-${p.num}" onclick="cancelarPedido(${p.num})">Cancelar</button>` : "—"}</td></tr>`).join("");
+  document.getElementById("tabla-pedidos").classList.toggle("oculto", !l.length);
+  document.getElementById("pedidos-vacio").classList.toggle("oculto", l.length > 0);
+}
+function cancelarPedido(n){
+  if(!confirm("¿Seguro que deseas cancelar el pedido #" + n + "?")) return;
+  U().pedidos.find(p => p.num === n).estado = "Cancelado"; persistir(); renderPedidos(); toast("Pedido #" + n + " cancelado");
+}
+
+/* ================= PERFIL ================= */
+function renderPerfil(){
+  const u = U();
+  document.getElementById("perfil-avatar").textContent = u.avatar;
+  document.getElementById("perfil-nombre-titulo").textContent = u.nombre;
+  document.getElementById("perfil-correo-titulo").textContent = u.correo;
+  document.getElementById("perfil-desde").textContent = "Miembro desde " + u.desde;
+  document.getElementById("perfil-nombre").value = u.nombre;
+  document.getElementById("perfil-correo").value = u.correo;
+  document.getElementById("perfil-telefono").value = u.telefono;
+  document.getElementById("perfil-nacimiento").value = u.nacimiento;
+  document.getElementById("perfil-genero").value = u.genero;
+  document.getElementById("perfil-bio").value = u.bio; contarBio();
+  document.getElementById("lista-avatares").innerHTML = AVATARES.map((a,i) => `<button id="avatar-${i}" class="${a === u.avatar ? "activa" : ""}" onclick="elegirAvatar('${a}')">${a}</button>`).join("");
+  limpiarAlerta("alerta-perfil");
+}
+function elegirAvatar(a){ U().avatar = a; persistir(); refrescarUsuario(); renderPerfil(); toast("Avatar actualizado " + a); }
+function contarBio(){ document.getElementById("bio-contador").textContent = document.getElementById("perfil-bio").value.length; }
+function guardarPerfil(e){
+  e.preventDefault();
+  const nombre = document.getElementById("perfil-nombre").value.trim();
+  const tel = document.getElementById("perfil-telefono").value.trim();
+  const nac = document.getElementById("perfil-nacimiento").value;
+  if(nombre.length < 3 || !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/.test(nombre)) return alerta("alerta-perfil","El nombre debe tener al menos 3 letras y sin números.","error"), false;
+  if(tel && !/^3\d{9}$/.test(tel)) return alerta("alerta-perfil","El teléfono debe tener 10 dígitos y empezar por 3.","error"), false;
+  if(nac){
+    const edad = (new Date() - new Date(nac)) / (365.25*24*3600*1000);
+    if(edad < 0) return alerta("alerta-perfil","La fecha de nacimiento no puede ser futura.","error"), false;
+    if(edad < 18) return alerta("alerta-perfil","Debes ser mayor de 18 años.","error"), false;
+  }
+  Object.assign(U(), {nombre, telefono:tel, nacimiento:nac, genero:document.getElementById("perfil-genero").value, bio:document.getElementById("perfil-bio").value.trim()});
+  persistir(); refrescarUsuario(); renderPerfil();
+  alerta("alerta-perfil","✅ Perfil actualizado correctamente.","exito"); return false;
+}
+
+/* ================= CONFIGURACIÓN ================= */
+function renderConfig(){
+  const c = U().config;
+  document.getElementById("cfg-oscuro").checked = c.oscuro;
+  document.getElementById("cfg-notif-correo").checked = c.notifCorreo;
+  document.getElementById("cfg-notif-pedidos").checked = c.notifPedidos;
+  document.getElementById("cfg-fuente").value = c.fuente;
+  document.getElementById("cfg-idioma").value = c.idioma;
+  ["alerta-config","alerta-clave"].forEach(limpiarAlerta);
+  document.getElementById("form-clave").reset();
+}
+function aplicarTema(){ document.body.classList.toggle("oscuro", document.getElementById("cfg-oscuro").checked); }
+function aplicarFuente(){ document.body.classList.remove("fuente-grande","fuente-pequena"); const f = document.getElementById("cfg-fuente").value; if(f !== "normal") document.body.classList.add("fuente-" + f); }
+function aplicarConfigGuardada(){ const c = U().config; document.body.className = (c.oscuro ? "oscuro " : "") + (c.fuente !== "normal" ? "fuente-" + c.fuente : ""); }
+function guardarConfig(){
+  U().config = { oscuro:document.getElementById("cfg-oscuro").checked, notifCorreo:document.getElementById("cfg-notif-correo").checked,
+    notifPedidos:document.getElementById("cfg-notif-pedidos").checked, fuente:document.getElementById("cfg-fuente").value, idioma:document.getElementById("cfg-idioma").value };
+  persistir(); alerta("alerta-config","✅ Preferencias guardadas.","exito");
+}
+function cambiarClave(e){
+  e.preventDefault();
+  const a = document.getElementById("clave-actual").value, n = document.getElementById("clave-nueva").value, c = document.getElementById("clave-confirmar").value;
+  if(!a || !n || !c) return alerta("alerta-clave","Completa todos los campos.","error"), false;
+  if(a !== U().clave) return alerta("alerta-clave","La contraseña actual es incorrecta.","error"), false;
+  if(!claveValida(n)) return alerta("alerta-clave","La nueva contraseña debe tener 8+ caracteres, una mayúscula y un número.","error"), false;
+  if(n === a) return alerta("alerta-clave","La nueva contraseña debe ser diferente a la actual.","error"), false;
+  if(n !== c) return alerta("alerta-clave","Las contraseñas nuevas no coinciden.","error"), false;
+  U().clave = n; persistir(); document.getElementById("form-clave").reset();
+  alerta("alerta-clave","🔒 Contraseña actualizada correctamente.","exito"); return false;
+}
+function eliminarCuenta(){
+  if(document.getElementById("confirmar-eliminar").value !== "ELIMINAR") return alerta("alerta-eliminar","Debes escribir ELIMINAR en mayúsculas.","error");
+  delete usuarios[actual]; persistir();
+  document.getElementById("confirmar-eliminar").value = ""; limpiarAlerta("alerta-eliminar"); cerrarModal("modal-eliminar");
+  cerrarSesion(); alerta("alerta-login","Tu cuenta fue eliminada.","exito");
+}
+
+/* ================= ARRANQUE ================= */
+const sesionGuardada = leer("nebula_sesion", null);
+if(sesionGuardada && usuarios[sesionGuardada]) entrar(sesionGuardada);
+document.addEventListener("keydown", e => { if(e.key === "Escape") document.querySelectorAll(".modal-fondo").forEach(m => m.classList.remove("abierto")); });
+</script>
+</body>
+</html>
